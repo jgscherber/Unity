@@ -19,9 +19,11 @@ public class PlayerController : MonoBehaviour {
 
 
 	private Rigidbody rb;
+	private AudioSource audioSource;
 
 	void Start() {
 		rb = GetComponent<Rigidbody> ();
+		audioSource = GetComponent<AudioSource> ();
 	}
 
 	void FixedUpdate() {
@@ -53,11 +55,13 @@ public class PlayerController : MonoBehaviour {
 
 	void Update() {
 		if (Input.GetButton ("Fire1") && Time.time > nextFire) {
+
+			// limits spawn rate
 			nextFire = Time.time + fireRate;
 			Instantiate (shot, shotSpawn.position, shotSpawn.rotation);
-			// limits the number of shot objects to 6
-			//Destroy (clone, 3.0F);
 
+			// create audio
+			audioSource.Play();
 		}
 	}
 }
