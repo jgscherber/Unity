@@ -23,8 +23,15 @@ public class GameController : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 		CheckInput ();
+		MaintainVelocity ();
 	}
 
+	private void MaintainVelocity() {
+		foreach(GameObject ball in balls) {
+			Vector3 velocity = ball.GetComponent<Rigidbody2D> ().velocity;
+			Debug.Log (velocity);
+		}
+	}
 
 	void CheckInput() {
 
@@ -36,12 +43,12 @@ public class GameController : MonoBehaviour {
 			if (Input.GetMouseButtonDown (0)) {
 				HandleTouch (10, Camera.main.ScreenToWorldPoint (Input.mousePosition), TouchPhase.Began);
 			}
-			if (Input.GetMouseButton (0)) {
-				HandleTouch (9, Camera.main.ScreenToWorldPoint (Input.mousePosition), TouchPhase.Began);
-			}
-			if (Input.GetMouseButtonUp (0)) {
-				HandleTouch (8, Camera.main.ScreenToWorldPoint (Input.mousePosition), TouchPhase.Began);
-			}
+//			if (Input.GetMouseButton (0)) {
+//				HandleTouch (9, Camera.main.ScreenToWorldPoint (Input.mousePosition), TouchPhase.Began);
+//			}
+//			if (Input.GetMouseButtonUp (0)) {
+//				HandleTouch (8, Camera.main.ScreenToWorldPoint (Input.mousePosition), TouchPhase.Began);
+//			}
 		}
 	}
 
@@ -49,40 +56,66 @@ public class GameController : MonoBehaviour {
 
 
 		bool beginTouch = touchPhase.Equals (TouchPhase.Began) && touchFingerId == 10;
-		float radiusOffset = 1.7f;
+
 
 		if(beginTouch) {
-			Vector2 touchPosition2D = new Vector2 (touchPosition.x, touchPosition.y);
+			Vector2 touchPosition2D = touchPosition;
 			RaycastHit2D rayHit = Physics2D.Raycast (touchPosition2D, new Vector2(0f,0f));
 
 
 			if (rayHit && rayHit.transform.gameObject.tag.Equals("Ball")) {
 				GameObject ball = rayHit.transform.gameObject;
 				ball.name = rayHit.transform.gameObject.name; // get ride of (Clone)
-				Vector3 rotation = ball.transform.rotation.eulerAngles;
-
-				// shift left and right to avoid collisions on spawn
-				float degrees = rotation.z;
-				float radians = (degrees * Mathf.PI) / 180;
-				float x = Mathf.Cos (radians) * radiusOffset;
-				float y = Mathf.Sin (radians) * radiusOffset;
-
-				// left spawn
-				Quaternion left = Quaternion.Euler(new Vector3(0f,0f,rotation.z+90));
-				Vector2 spawnPositionLeft = new Vector2 (touchPosition.x-x, touchPosition.y+y); // keep spawned on seperate planes (-1 + 1)
-
-				// right spawn
-				Quaternion right = Quaternion.Euler(new Vector3(0f,0f,rotation.z+270));
-				Vector2 spawnPositionRight = new Vector2 (touchPosition.x+y, touchPosition.y-x);
-
-
-				ball.transform.position = new Vector2 (100f, 100f);
-				Instantiate (ball, spawnPositionLeft, left);
-				Instantiate (ball, spawnPositionRight, right);
-				Destroy (ball);
+				splitBall(ball, touchPosition2D);
 
 			}
 		}
+	}
+
+	private float radiusOffset = 2.0f;
+
+	private void splitBall(GameObject ball, Vector2 touchPosition) {
+		Vector3 rotation = ball.transform.rotation.eulerAngles;
+		Debug.DrawLine (Vector3.zero, touchPosition, Color.red, 1.0f);
+
+		// needs to -10 because the balls also have a -10 z for some reason??
+		Vector3 z_axis = new Vector3 (0, 0, -10);
+		Vector2 normal = Vector3.Cross (touchPosition, z_axis);
+		Debug.DrawLine (touchPosition, normal, Color.green, 1.0f);
+
+		normal = normal.normalized;
+
+		// spawn positions
+		Vector2 spawnPositionLeft = touchPosition + (normal * radiusOffset);
+		Quaternion left = Quaternion.Euler(new Vector3(0f,0f,rotation.z+90));
+
+		Vector2 spawnPositionRight = touchPosition + (normal * radiusOffset * -1);
+		Quaternion right = Quaternion.Euler(new Vector3(0f,0f,rotation.z+270));
+
+
+//		// shift left and right to avoid collisions on spawn
+//		float degrees = rotation.z;
+//		float radians = (degrees * Mathf.PI) / 180;
+//		float x = Mathf.Cos (radians) * radiusOffset;
+//		float y = Mathf.Sin (radians) * radiusOffset;
+//
+//		// left spawn
+//		Quaternion left = Quaternion.Euler(new Vector3(0f,0f,rotation.z+90));
+//		Vector2 spawnPositionLeft = new Vector2 (touchPosition.x-x, touchPosition.y+y); // keep spawned on seperate planes (-1 + 1)
+//
+//		// right spawn
+//		Quaternion right = Quaternion.Euler(new Vector3(0f,0f,rotation.z+270));
+//		Vector2 spawnPositionRight = new Vector2 (touchPosition.x+y, touchPosition.y-x);
+
+		// move original ball off screen
+		ball.transform.position = new Vector2 (100f, 100f);
+		// create new ones
+		balls.Add(Instantiate (ball, spawnPositionLeft, left));
+		balls.Add(Instantiate (ball, spawnPositionRight, right));
+		// remove balls isn't working, causing a reference error
+		// https://forum.unity.com/threads/unsure-of-how-to-add-and-remove-gameobjects-from-list-as-they-spawn-die.132624/
+		balls.Remove (ball);
+		Destroy (ball);
 	}
 
 
@@ -95,14 +128,14 @@ public class GameController : MonoBehaviour {
 
 		while (true) {
 
-			Vector3 spawnPosition = new Vector2 (0f, 0f);
+			Vector2 spawnPosition = Vector2.zero;
 
-			Quaternion randomRotation = new Quaternion ();
+			Quaternion randomRotation = Quaternion.identity;
 			randomRotation.eulerAngles = new Vector3 (0f, 0f, Random.Range (0, 360));
 
 			GameObject ball = balls [Random.Range (0, balls.Count)];
 
-			Instantiate (ball, spawnPosition, randomRotation);
+			balls.Add(Instantiate (ball, spawnPosition, randomRotation));
 
 			yield return new WaitForSeconds (gapWait);
 		}
