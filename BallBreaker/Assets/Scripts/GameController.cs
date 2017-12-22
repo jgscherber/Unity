@@ -26,12 +26,18 @@ public class GameController : MonoBehaviour {
 		MaintainVelocity ();
 	}
 
+	// TODO: currently only logging, need to apply
 	private void MaintainVelocity() {
-		foreach(GameObject ball in balls) {
+		foreach(GameObject ball in ballsCreated) {
 			Vector3 velocity = ball.GetComponent<Rigidbody2D> ().velocity;
-			Debug.Log (velocity);
+			float speed = ball.gameObject.GetComponent<Mover> ().speed;
+
+			velocity = velocity.normalized;
+			ball.GetComponent<Rigidbody2D> ().velocity = velocity * speed;
+
+			Debug.Log (ball.GetComponent<Rigidbody2D> ().velocity);
 		}
-	}
+	} // end MaintainVelocity()
 
 	void CheckInput() {
 
@@ -52,11 +58,10 @@ public class GameController : MonoBehaviour {
 		}
 	}
 
+	// used for treating mouse-clicks as touchs
 	private void HandleTouch(int touchFingerId, Vector3 touchPosition, TouchPhase touchPhase) {
 
-
-		bool beginTouch = touchPhase.Equals (TouchPhase.Began) && touchFingerId == 10;
-
+		bool beginTouch = touchPhase.Equals (TouchPhase.Began);
 
 		if(beginTouch) {
 			Vector2 touchPosition2D = touchPosition;
@@ -64,15 +69,18 @@ public class GameController : MonoBehaviour {
 
 
 			if (rayHit && rayHit.transform.gameObject.tag.Equals("Ball")) {
+				// get the ball that was hit
 				GameObject ball = rayHit.transform.gameObject;
-				ball.name = rayHit.transform.gameObject.name; // get ride of (Clone)
+
+				// get ride of (Clone)
+				ball.name = rayHit.transform.gameObject.name; 
 				splitBall(ball, touchPosition2D);
 
 			}
 		}
 	}
 
-	private float radiusOffset = 2.0f;
+	private float radiusOffset = 2.5f;
 
 	private void splitBall(GameObject ball, Vector2 touchPosition) {
 		Vector3 rotation = ball.transform.rotation.eulerAngles;
@@ -81,44 +89,41 @@ public class GameController : MonoBehaviour {
 		// needs to -10 because the balls also have a -10 z for some reason??
 		Vector3 z_axis = new Vector3 (0, 0, -10);
 		Vector2 normal = Vector3.Cross (touchPosition, z_axis);
-		Debug.DrawLine (touchPosition, normal, Color.green, 1.0f);
-
 		normal = normal.normalized;
+
+		Debug.DrawLine (touchPosition, normal, Color.green, 1.0f);
+		Debug.Log (normal);
+
 
 		// spawn positions
 		Vector2 spawnPositionLeft = touchPosition + (normal * radiusOffset);
-		Quaternion left = Quaternion.Euler(new Vector3(0f,0f,rotation.z+90));
-
 		Vector2 spawnPositionRight = touchPosition + (normal * radiusOffset * -1);
-		Quaternion right = Quaternion.Euler(new Vector3(0f,0f,rotation.z+270));
 
-
-//		// shift left and right to avoid collisions on spawn
-//		float degrees = rotation.z;
-//		float radians = (degrees * Mathf.PI) / 180;
-//		float x = Mathf.Cos (radians) * radiusOffset;
-//		float y = Mathf.Sin (radians) * radiusOffset;
-//
-//		// left spawn
-//		Quaternion left = Quaternion.Euler(new Vector3(0f,0f,rotation.z+90));
-//		Vector2 spawnPositionLeft = new Vector2 (touchPosition.x-x, touchPosition.y+y); // keep spawned on seperate planes (-1 + 1)
-//
-//		// right spawn
-//		Quaternion right = Quaternion.Euler(new Vector3(0f,0f,rotation.z+270));
-//		Vector2 spawnPositionRight = new Vector2 (touchPosition.x+y, touchPosition.y-x);
 
 		// move original ball off screen
-		ball.transform.position = new Vector2 (100f, 100f);
+		ball.transform.position = new Vector2 (100f,100f);
+
 		// create new ones
-		balls.Add(Instantiate (ball, spawnPositionLeft, left));
-		balls.Add(Instantiate (ball, spawnPositionRight, right));
-		// remove balls isn't working, causing a reference error
-		// https://forum.unity.com/threads/unsure-of-how-to-add-and-remove-gameobjects-from-list-as-they-spawn-die.132624/
-		balls.Remove (ball);
+		GameObject leftBall = (GameObject) Instantiate (ball, spawnPositionLeft, Quaternion.identity);
+		GameObject rightBall = (GameObject) Instantiate (ball, spawnPositionRight, Quaternion.identity);
+
+		// assign their velocity
+		leftBall.GetComponent<Rigidbody2D> ().velocity = normal * ball.GetComponent<Mover> ().speed;
+		rightBall.GetComponent<Rigidbody2D> ().velocity = normal * -ball.GetComponent<Mover> ().speed;
+		Debug.Log (leftBall.GetComponent<Rigidbody2D> ().velocity + " " + rightBall.GetComponent<Rigidbody2D> ().velocity);
+
+		// add them to our balls list
+		ballsCreated.Add(leftBall);
+		ballsCreated.Add(rightBall);
+
+		// destroy old ball
+		ballsCreated.Remove (ball);
 		Destroy (ball);
-	}
+
+	} // end splitBall()
 
 
+	public List<GameObject> ballsCreated;
 	public List<GameObject> balls;
 	public int startWait;
 	public int gapWait;
@@ -130,12 +135,18 @@ public class GameController : MonoBehaviour {
 
 			Vector2 spawnPosition = Vector2.zero;
 
-			Quaternion randomRotation = Quaternion.identity;
-			randomRotation.eulerAngles = new Vector3 (0f, 0f, Random.Range (0, 360));
+//			Quaternion randomRotation = Quaternion.identity;
+//			randomRotation.eulerAngles = new Vector3 (0f, 0f, Random.Range (0, 360));
 
+			// chose one of the ball types to be created (why is this being double used for ball types and tracking!)
 			GameObject ball = balls [Random.Range (0, balls.Count)];
+			float speed = ball.GetComponent<Mover> ().speed;
 
-			balls.Add(Instantiate (ball, spawnPosition, randomRotation));
+			GameObject ballTemp = (GameObject) Instantiate (ball, spawnPosition, Quaternion.identity);
+			ballTemp.GetComponent<Rigidbody2D> ().velocity = (new Vector2 (Random.Range (-100,100), Random.Range (-100,100) )).normalized * speed;
+
+			// hold a references
+			ballsCreated.Add(ballTemp);
 
 			yield return new WaitForSeconds (gapWait);
 		}

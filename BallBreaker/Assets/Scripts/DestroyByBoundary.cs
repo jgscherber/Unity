@@ -20,17 +20,19 @@ public class DestroyByBoundary : MonoBehaviour {
 		boundingBox = GetComponent<BoxCollider2D> ();
 		boundingBox.size = new Vector2 (width, height);
 
-		// scoring
+		// scoring <-- not sure what this is doing?
 		GameObject gameControllerObj = GameObject.FindWithTag("GameController");
 		if (gameControllerObj != null)
 			gameController = gameControllerObj.GetComponent<GameController> ();
 		else
 			Debug.Log ("Cannot find 'GameController' script");
 	}
-
+		
+	// used for destroying balls as they move off screen
 	void OnTriggerExit2D(Collider2D other) {
 
-
+		// need to remove from balls array also
+		gameController.ballsCreated.Remove(other.gameObject);
 
 		// object pool would be better, may be unable with splitting
 		Destroy (other.gameObject);
