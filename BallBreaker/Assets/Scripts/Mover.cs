@@ -5,19 +5,30 @@ using UnityEngine;
 public class Mover : MonoBehaviour {
 
 	private Rigidbody2D rb;
-	public float speed;
+    private Transform tf;
+    private Camera cam;
+
+	public float startingSpeed;
 	public int scoreValue = 1;
+    public SplitTypes splitType;
 
 	// Use this for initialization
 	void Start () {
 		rb = GetComponent<Rigidbody2D> ();
+        tf = GetComponent<Transform>();
+        cam = Camera.main;
 
-		// maybe change this to a set velocity (where does the random direction come in?)
-		rb.AddForce(transform.up * speed);
-	}
+        // set the size of the balls based on the screen size
+        float scale = cam.orthographicSize / 15f;
+        tf.localScale = new Vector3(scale,scale);
+
+
+    }
 
 	// returns the score value of the ball
-	public int GetScore() {
+	public int getScore() {
 		return scoreValue;
 	}
+
+
 }

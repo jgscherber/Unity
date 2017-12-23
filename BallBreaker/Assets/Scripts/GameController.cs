@@ -4,12 +4,10 @@ using UnityEngine;
 
 public class GameController : MonoBehaviour {
 
-
-
-
 	public GUIText scoreText;
 
 	private int score;
+    private float minSpeed = 10;
 
 	// Use this for initialization
 	void Start () {
@@ -29,12 +27,15 @@ public class GameController : MonoBehaviour {
 	// TODO: currently only logging, need to apply
 	private void MaintainVelocity() {
 		foreach(GameObject ball in ballsCreated) {
+
 			Vector3 velocity = ball.GetComponent<Rigidbody2D> ().velocity;
-			float speed = ball.gameObject.GetComponent<Mover> ().speed;
-
-			velocity = velocity.normalized;
-			ball.GetComponent<Rigidbody2D> ().velocity = velocity * speed;
-
+            
+            // if the ball is moving too slow, speed it back up to 10% above minimum
+            if (velocity.magnitude < minSpeed)
+            {
+                velocity = velocity.normalized;
+                ball.GetComponent<Rigidbody2D>().velocity = velocity * minSpeed * 1.1f;
+            }
 			Debug.Log (ball.GetComponent<Rigidbody2D> ().velocity);
 		}
 	} // end MaintainVelocity()
@@ -74,53 +75,15 @@ public class GameController : MonoBehaviour {
 
 				// get ride of (Clone)
 				ball.name = rayHit.transform.gameObject.name; 
-				splitBall(ball, touchPosition2D);
+				Splits.split(ball, touchPosition2D, ballsCreated);
 
 			}
 		}
 	}
 
-	private float radiusOffset = 2.5f;
+	
 
-	private void splitBall(GameObject ball, Vector2 touchPosition) {
-		Vector3 rotation = ball.transform.rotation.eulerAngles;
-		Debug.DrawLine (Vector3.zero, touchPosition, Color.red, 1.0f);
-
-		// needs to -10 because the balls also have a -10 z for some reason??
-		Vector3 z_axis = new Vector3 (0, 0, -10);
-		Vector2 normal = Vector3.Cross (touchPosition, z_axis);
-		normal = normal.normalized;
-
-		Debug.DrawLine (touchPosition, normal, Color.green, 1.0f);
-		Debug.Log (normal);
-
-
-		// spawn positions
-		Vector2 spawnPositionLeft = touchPosition + (normal * radiusOffset);
-		Vector2 spawnPositionRight = touchPosition + (normal * radiusOffset * -1);
-
-
-		// move original ball off screen
-		ball.transform.position = new Vector2 (100f,100f);
-
-		// create new ones
-		GameObject leftBall = (GameObject) Instantiate (ball, spawnPositionLeft, Quaternion.identity);
-		GameObject rightBall = (GameObject) Instantiate (ball, spawnPositionRight, Quaternion.identity);
-
-		// assign their velocity
-		leftBall.GetComponent<Rigidbody2D> ().velocity = normal * ball.GetComponent<Mover> ().speed;
-		rightBall.GetComponent<Rigidbody2D> ().velocity = normal * -ball.GetComponent<Mover> ().speed;
-		Debug.Log (leftBall.GetComponent<Rigidbody2D> ().velocity + " " + rightBall.GetComponent<Rigidbody2D> ().velocity);
-
-		// add them to our balls list
-		ballsCreated.Add(leftBall);
-		ballsCreated.Add(rightBall);
-
-		// destroy old ball
-		ballsCreated.Remove (ball);
-		Destroy (ball);
-
-	} // end splitBall()
+	
 
 
 	public List<GameObject> ballsCreated;
@@ -140,7 +103,7 @@ public class GameController : MonoBehaviour {
 
 			// chose one of the ball types to be created (why is this being double used for ball types and tracking!)
 			GameObject ball = balls [Random.Range (0, balls.Count)];
-			float speed = ball.GetComponent<Mover> ().speed;
+			float speed = ball.GetComponent<Mover> ().startingSpeed;
 
 			GameObject ballTemp = (GameObject) Instantiate (ball, spawnPosition, Quaternion.identity);
 			ballTemp.GetComponent<Rigidbody2D> ().velocity = (new Vector2 (Random.Range (-100,100), Random.Range (-100,100) )).normalized * speed;

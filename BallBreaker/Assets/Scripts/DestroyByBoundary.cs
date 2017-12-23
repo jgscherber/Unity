@@ -20,7 +20,7 @@ public class DestroyByBoundary : MonoBehaviour {
 		boundingBox = GetComponent<BoxCollider2D> ();
 		boundingBox.size = new Vector2 (width, height);
 
-		// scoring <-- not sure what this is doing?
+		// need to get reference for scoring scoring
 		GameObject gameControllerObj = GameObject.FindWithTag("GameController");
 		if (gameControllerObj != null)
 			gameController = gameControllerObj.GetComponent<GameController> ();
@@ -38,7 +38,7 @@ public class DestroyByBoundary : MonoBehaviour {
 		Destroy (other.gameObject);
 
 		// add to score
-		int scoreValue = other.gameObject.GetComponent<Mover>().GetScore();
+		int scoreValue = other.gameObject.GetComponent<Mover>().getScore();
 		gameController.AddScore(scoreValue);
 
 	}
