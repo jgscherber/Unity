@@ -1,18 +1,41 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement; // for end game
 
 public class GameController : MonoBehaviour {
 
-	public GUIText scoreText;
+	public Text scoreText;
+    public Text timerText;
 
-	private int score;
+    public int gameTime = 30; // game time in seconds
+
+	
+    private int timeSeconds;
     private float minSpeed = 10;
 
-	// Use this for initialization
-	void Start () {
-		score = 0;
+    private Camera reference;
+    private float height;
+
+
+    // Use this for initialization
+    void Start () {
+
+        // re-size text to fit screen
+        reference = Camera.main;
+        height = 2f * reference.orthographicSize;
+        scoreText.fontSize = (int)height;
+        timerText.fontSize = (int)height;
+
+        // setup
+        Score.setScore(0);
+        timeSeconds = 0;
+
+        updateTime();
 		UpdateScore ();
+
+        Invoke("AddTime", 1f);
 		StartCoroutine (SpawnBalls ());
 	}
 
@@ -24,7 +47,7 @@ public class GameController : MonoBehaviour {
 		MaintainVelocity ();
 	}
 
-	// TODO: currently only logging, need to apply
+	
 	private void MaintainVelocity() {
 		foreach(GameObject ball in ballsCreated) {
 
@@ -36,19 +59,19 @@ public class GameController : MonoBehaviour {
                 velocity = velocity.normalized;
                 ball.GetComponent<Rigidbody2D>().velocity = velocity * minSpeed * 1.1f;
             }
-			Debug.Log (ball.GetComponent<Rigidbody2D> ().velocity);
+
 		}
 	} // end MaintainVelocity()
 
 	void CheckInput() {
 
 		foreach (Touch touch in Input.touches) {
-			HandleTouch (touch.fingerId, Camera.main.ScreenToWorldPoint (touch.position), touch.phase);
+			HandleTouch(touch.fingerId, Camera.main.ScreenToWorldPoint(touch.position), touch.phase);
 		}
 
 		if (Input.touchCount == 0) {
 			if (Input.GetMouseButtonDown (0)) {
-				HandleTouch (10, Camera.main.ScreenToWorldPoint (Input.mousePosition), TouchPhase.Began);
+				HandleTouch(10, Camera.main.ScreenToWorldPoint(Input.mousePosition), TouchPhase.Began);
 			}
 //			if (Input.GetMouseButton (0)) {
 //				HandleTouch (9, Camera.main.ScreenToWorldPoint (Input.mousePosition), TouchPhase.Began);
@@ -60,29 +83,40 @@ public class GameController : MonoBehaviour {
 	}
 
 	// used for treating mouse-clicks as touchs
-	private void HandleTouch(int touchFingerId, Vector3 touchPosition, TouchPhase touchPhase) {
+	private void HandleTouch(int touchFingerId, Vector3 touchPosition, TouchPhase touchPhase)
+    {
 
+        // deltaTime in seconds -- not the way to handle, need time and position
 		bool beginTouch = touchPhase.Equals (TouchPhase.Began);
+
+
 
 		if(beginTouch) {
 			Vector2 touchPosition2D = touchPosition;
-			RaycastHit2D rayHit = Physics2D.Raycast (touchPosition2D, new Vector2(0f,0f));
+
+            Debug.DrawRay(Vector3.zero, touchPosition, Color.blue, 1.0f);
+
+            // have to check all hits to make sure bounding box isn't the only passed
+			RaycastHit2D[] allRayHits = Physics2D.RaycastAll (touchPosition2D, new Vector3(0,0,-10));
+
+            
+            // TODO: add enemy objects that shouldn't be hit and reduce points            
+            foreach (RaycastHit2D rayHit in allRayHits) {
+
+                // need the tag check to avoid passing the bounding box
+                if (rayHit && rayHit.transform.gameObject.tag.Equals("Ball")) {
+
+                    // get the ball that was hit
+                    GameObject ball = rayHit.transform.gameObject;
 
 
-			if (rayHit && rayHit.transform.gameObject.tag.Equals("Ball")) {
-				// get the ball that was hit
-				GameObject ball = rayHit.transform.gameObject;
+                    Splits.split(ball, touchPosition2D, ballsCreated);
 
-				// get ride of (Clone)
-				ball.name = rayHit.transform.gameObject.name; 
-				Splits.split(ball, touchPosition2D, ballsCreated);
-
-			}
+                }
+            }
 		}
 	}
-
-	
-
+    
 	
 
 
@@ -117,11 +151,33 @@ public class GameController : MonoBehaviour {
 	}
 
 	void UpdateScore() {
-		scoreText.text = "Score: " + score;
+		scoreText.text = "Score: " + Score.getScore();
 	}
 
+    // game times will always be less than 1 minute, can display seconds directly
+    void updateTime()
+    {
+        timerText.text = "" + (gameTime - timeSeconds);
+
+    }
+
+    void AddTime()
+    {
+        timeSeconds += 1;
+        if(gameTime - timeSeconds > 0)
+        {
+            updateTime();
+            Invoke("AddTime", 1f);
+        } else
+        {
+            SceneManager.LoadScene(2);
+        }
+
+    }
+
 	public void AddScore(int scoreValue) {
-		score += scoreValue;
+        int score = Score.getScore();
+        Score.setScore(score + scoreValue);
 		UpdateScore ();
 	}
 		

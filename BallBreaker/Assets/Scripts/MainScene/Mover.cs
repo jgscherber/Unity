@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Mover : MonoBehaviour {
 
-	private Rigidbody2D rb;
+	
     private Transform tf;
     private Camera cam;
 
@@ -14,7 +14,7 @@ public class Mover : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-		rb = GetComponent<Rigidbody2D> ();
+		
         tf = GetComponent<Transform>();
         cam = Camera.main;
 

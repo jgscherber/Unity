@@ -31,15 +31,22 @@ public class DestroyByBoundary : MonoBehaviour {
 	// used for destroying balls as they move off screen
 	void OnTriggerExit2D(Collider2D other) {
 
+        GameObject otherObj = other.gameObject;
+
 		// need to remove from balls array also
-		gameController.ballsCreated.Remove(other.gameObject);
+		gameController.ballsCreated.Remove(otherObj);
 
-		// object pool would be better, may be unable with splitting
-		Destroy (other.gameObject);
+        // add to score only if active (not exiting due to touched)
+        if (otherObj.activeSelf)
+        {
+            int scoreValue = otherObj.GetComponent<Mover>().getScore();
+            gameController.AddScore(scoreValue);
 
-		// add to score
-		int scoreValue = other.gameObject.GetComponent<Mover>().getScore();
-		gameController.AddScore(scoreValue);
+            // object pool would be better, may be unable with splitting
+            Destroy(otherObj);
+        }
 
-	}
+        
+
+    }
 }
